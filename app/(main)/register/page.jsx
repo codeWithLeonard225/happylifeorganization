@@ -7,6 +7,7 @@ import {
   collection, addDoc, serverTimestamp, 
   query, where, getDocs 
 } from "firebase/firestore";
+import imageCompression from 'browser-image-compression';
 import { MdErrorOutline, MdInfoOutline } from "react-icons/md"; // Added icons
 import { generateClientId } from "@/app/lib/generateClientId";
 import { uploadToCloudinary } from "@/app/lib/cloudinaryUpload";
@@ -19,13 +20,35 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [registeredClient, setRegisteredClient] = useState(null);
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setPhoto(file);
-    setPhotoPreview(URL.createObjectURL(file));
-    setError(""); // Clear error when photo is updated
+  const handlePhotoChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Validation: Ensure it's an image
+  if (!file.type.startsWith('image/')) {
+    setError("Please upload an image file.");
+    return;
+  }
+
+  const options = {
+    maxSizeMB: 0.2,          // Max size 200KB (ideal for passport photos)
+    maxWidthOrHeight: 600,  // Standard passport aspect ratio height
+    useWebWorker: true,
   };
+
+  try {
+    setLoading(true); // Optional: show a small spinner
+    const compressedFile = await imageCompression(file, options);
+    
+    setPhoto(compressedFile);
+    setPhotoPreview(URL.createObjectURL(compressedFile));
+    setError("");
+  } catch (err) {
+    setError("Failed to process image. Try a different photo.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -110,11 +133,18 @@ export default function RegisterPage() {
             {/* PHOTO UPLOAD */}
             <div className="md:col-span-2 flex flex-col items-center pb-4">
               <div className="w-36 h-36 rounded-2xl border-4 border-dashed border-indigo-100 overflow-hidden mb-4 bg-gray-50 flex items-center justify-center">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-gray-300 text-xs font-bold uppercase text-center p-4">Passport Preview</span>
-                )}
+               {photoPreview && (
+  <div className="mt-4 flex flex-col items-center">
+    <div className="w-40 h-48 border-2 border-gray-300 overflow-hidden rounded-md bg-gray-100">
+      <img 
+        src={photoPreview} 
+        alt="Preview" 
+        className="w-full h-full object-cover" // object-cover acts like a crop
+      />
+    </div>
+    <p className="text-xs text-gray-500 mt-2">Passport Preview</p>
+  </div>
+)}
               </div>
               <input id="photo" type="file" accept="image/*" required onChange={handlePhotoChange} className="hidden" />
               <label htmlFor="photo" className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-700 cursor-pointer shadow-md transition-all">
