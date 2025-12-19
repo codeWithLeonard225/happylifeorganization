@@ -43,8 +43,8 @@ export default function IDCardModal({ client, onClose }) {
 
           <div className="mt-3 space-y-1">
             <p><b>Gender:</b> {client.gender}</p>
-            <p><b>DOB:</b> {client.dob}</p>
             <p><b>Tel:</b> {client.tel}</p>
+            <p><b>Address:</b> {client.address}</p>
           </div>
         </div>
 
